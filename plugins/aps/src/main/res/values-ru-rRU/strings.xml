@@ -204,4 +204,23 @@
     <string name="enableSMB_EvenOn_OddOff_always_summary">\nвключены ...\nесли активная цель(ммоль/л) имеет четную десятичную часть\nили активная цель(мг/дл) - четное число\n\nв ином случае - отключены</string>
     <string name="openapsama_iob_threshold_percent_summary" formatted="false">Процент maxIOB выше которого SMB отключаются.\nЗначение по умолчанию: 100%\nПри значении в 100%, функция не имеет эффекта.</string>
     <string name="openapsama_iob_threshold_percent">Пороговый процент maxIOB для SMB\n(iob_threshold_percent)</string>
+    <string name="adaptive_meal_settings_title">Адаптивная еда / Dynamic I:C</string>
+    <string name="adaptive_meal_settings_summary">Dynamic I:C, обучение по белкам/жирам и замкнутый контур для виртуальной помпы.</string>
+    <string name="adaptive_meal_dynamic_icr">Включить Dynamic I:C</string>
+    <string name="adaptive_meal_dynamic_icr_summary">Рассчитывать ограниченный I:C по состоянию AutoISF и обученной модели еды.</string>
+    <string name="adaptive_meal_icr_coupling">Связь AutoISF → I:C</string>
+    <string name="adaptive_meal_icr_coupling_summary">0 не использует AutoISF для I:C; 1 использует полное ограниченное изменение чувствительности. По умолчанию 0,35.</string>
+    <string name="adaptive_meal_icr_max_adjustment">Максимальное изменение Dynamic I:C</string>
+    <string name="adaptive_meal_icr_max_adjustment_summary">Максимальное отклонение от профильного I:C. 0,15 означает ±15%%.</string>
+    <string name="adaptive_meal_neural_learning">Включить онлайн-обучение I:C</string>
+    <string name="adaptive_meal_neural_learning_summary">Обучать персональный множитель I:C по завершённым чистым эпизодам еды.</string>
+    <string name="adaptive_meal_neural_rate">Скорость обучения сети</string>
+    <string name="adaptive_meal_min_observations">Минимум чистых наблюдений</string>
+    <string name="adaptive_meal_dynamic_macro">Включить динамические коэффициенты Б/Ж</string>
+    <string name="adaptive_meal_dynamic_macro_summary">Медленно адаптировать коэффициенты белков/жиров по позднему CGM-ответу.</string>
+    <string name="adaptive_meal_macro_step">Максимальный шаг обучения Б/Ж</string>
+    <string name="adaptive_meal_macro_max_adjustment">Максимальная адаптация Б/Ж</string>
+    <string name="adaptive_meal_virtual_closed_loop">Замкнутый контур Virtual Pump</string>
+    <string name="adaptive_meal_virtual_closed_loop_summary">Использовать Dynamic I:C и отложенный сигнал Б/Ж внутри AutoISF только при активной виртуальной помпе.</string>
+
 </resources>
