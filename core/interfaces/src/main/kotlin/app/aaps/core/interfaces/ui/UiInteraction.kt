@@ -59,6 +59,7 @@ interface UiInteraction {
     fun runInsulinDialog(fragmentManager: FragmentManager)
     fun runCalibrationDialog(fragmentManager: FragmentManager)
     fun runCarbsDialog(fragmentManager: FragmentManager)
+    fun runProteinFatDialog(fragmentManager: FragmentManager)
     fun runTempTargetDialog(fragmentManager: FragmentManager)
     fun runExtendedBolusDialog(fragmentManager: FragmentManager)
     fun runFillDialog(fragmentManager: FragmentManager)
