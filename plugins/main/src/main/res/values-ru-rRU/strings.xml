@@ -336,4 +336,10 @@
     <string name="adaptive_meal_virtual_closed_loop">Симулятор замкнутого контура</string>
     <string name="adaptive_meal_virtual_closed_loop_summary">Прогонять адаптивный контроллер как неуправляющую виртуальную симуляцию и журналировать каждое решение.</string>
 
+    <string name="dynamic_ic_profile_title">Dynamic I:C</string>
+    <string name="dynamic_ic_profile_summary">Настройки автоматического углеводного коэффициента для этого профиля. Те же параметры доступны в общих настройках.</string>
+    <string name="icr_coupling_profile">Связь с AutoISF (0–1)</string>
+    <string name="icr_max_adjustment_profile">Макс. изменение I:C (доля)</string>
+    <string name="icr_learning_status">Нейросеть: %1$d наблюдений · уверенность %2$.0f%% · множитель ×%3$.3f</string>
+
 </resources>
