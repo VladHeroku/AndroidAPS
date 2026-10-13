@@ -28,6 +28,7 @@ import app.aaps.core.interfaces.utils.Translator
 import app.aaps.core.interfaces.workflow.CalculationWorkflow
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.workflow.LoggingWorker
+import app.aaps.core.objects.meal.ProteinFatEntryStore
 import app.aaps.core.utils.receivers.DataWorkerStorage
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
@@ -75,6 +76,13 @@ class PrepareTreatmentsDataWorker(
             }
         persistenceLayer.getCarbsFromTimeToTimeExpanded(fromTime, endTime, true)
             .map { CarbsDataPoint(it, rh) }
+            .forEach {
+                it.y = getNearestBg(data.overviewData, it.x.toLong())
+                filteredTreatments.add(it)
+            }
+
+        ProteinFatEntryStore.between(preferences, fromTime, endTime)
+            .map { ProteinFatDataPoint(it, rh) }
             .forEach {
                 it.y = getNearestBg(data.overviewData, it.x.toLong())
                 filteredTreatments.add(it)
