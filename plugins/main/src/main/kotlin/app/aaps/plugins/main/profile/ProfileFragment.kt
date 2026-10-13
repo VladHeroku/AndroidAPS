@@ -144,7 +144,7 @@ class ProfileFragment : DaggerFragment() {
         binding.macroDynamic.setOnCheckedChangeListener { _, _ ->
             if (!loadingMacroUi) saveMacroConfigFromUi()
         }
-        binding.dynamicIcrEnabled.setOnCheckedChangeListener { _, _ ->
+        binding.dynamicIcEnabled.setOnCheckedChangeListener { _, _ ->
             if (!loadingMacroUi) saveMacroConfigFromUi()
         }
         binding.neuralIcEnabled.setOnCheckedChangeListener { _, _ ->
@@ -175,7 +175,7 @@ class ProfileFragment : DaggerFragment() {
         binding.dia.tag = "LP_DIA"
 
         loadingMacroUi = true
-        binding.dynamicIcrEnabled.isChecked = preferences.get(BooleanKey.AdaptiveMealDynamicIcrEnabled)
+        binding.dynamicIcEnabled.isChecked = preferences.get(BooleanKey.AdaptiveMealDynamicIcrEnabled)
         binding.neuralIcEnabled.isChecked = preferences.get(BooleanKey.AdaptiveMealNeuralLearningEnabled)
         binding.icrCoupling.setParams(
             preferences.get(DoubleKey.AdaptiveMealIcrSensitivityCoupling),
@@ -516,7 +516,7 @@ class ProfileFragment : DaggerFragment() {
             dynamicLearnerEnabled = binding.macroDynamic.isChecked
         )
         ProteinFatProfileStore.save(preferences, profileName, updated)
-        preferences.put(BooleanKey.AdaptiveMealDynamicIcrEnabled, binding.dynamicIcrEnabled.isChecked)
+        preferences.put(BooleanKey.AdaptiveMealDynamicIcrEnabled, binding.dynamicIcEnabled.isChecked)
         preferences.put(BooleanKey.AdaptiveMealNeuralLearningEnabled, binding.neuralIcEnabled.isChecked)
         preferences.put(DoubleKey.AdaptiveMealIcrSensitivityCoupling, binding.icrCoupling.value.coerceIn(0.0, 1.0))
         preferences.put(DoubleKey.AdaptiveMealIcrMaxAdjustment, binding.icrMaxAdjustment.value.coerceIn(0.02, 0.40))
