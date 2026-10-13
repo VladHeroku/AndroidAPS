@@ -51,5 +51,10 @@ enum class DoubleKey(
     ApsAutoIsfSmbDeliveryRatioMin("openapsama_smb_delivery_ratio_min", 0.5, 0.5, 1.0, defaultedBySM = true),
     ApsAutoIsfSmbDeliveryRatioMax("openapsama_smb_delivery_ratio_max", 0.5, 0.5, 1.0, defaultedBySM = true),
     ApsAutoIsfSmbMaxRangeExtension("openapsama_smb_max_range_extension", 1.0, 1.0, 5.0, defaultedBySM = true),
+    AdaptiveMealIcrSensitivityCoupling("adaptive_meal_icr_sensitivity_coupling", 0.35, 0.0, 1.0, defaultedBySM = true, dependency = BooleanKey.AdaptiveMealDynamicIcrEnabled),
+    AdaptiveMealIcrMaxAdjustment("adaptive_meal_icr_max_adjustment", 0.15, 0.02, 0.40, defaultedBySM = true, dependency = BooleanKey.AdaptiveMealDynamicIcrEnabled),
+    AdaptiveMealNeuralLearningRate("adaptive_meal_neural_learning_rate", 0.0025, 0.0001, 0.02, defaultedBySM = true, dependency = BooleanKey.AdaptiveMealNeuralLearningEnabled),
+    AdaptiveMealMacroLearningStep("adaptive_meal_macro_learning_step", 0.03, 0.005, 0.10, defaultedBySM = true, dependency = BooleanKey.AdaptiveMealDynamicMacroEnabled),
+    AdaptiveMealMacroMaxAdjustment("adaptive_meal_macro_max_adjustment", 0.30, 0.05, 0.60, defaultedBySM = true, dependency = BooleanKey.AdaptiveMealDynamicMacroEnabled),
 
 }
