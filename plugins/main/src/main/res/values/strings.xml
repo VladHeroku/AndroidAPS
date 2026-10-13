@@ -337,4 +337,23 @@
     <string name="macro_advisory_only">Research preview: protein/fat and Dynamic I:C are advisory only and do not alter insulin delivery.</string>
     <string name="macro_button">P/F</string>
 
+    <string name="adaptive_meal_settings_title">Adaptive meal / Dynamic I:C</string>
+    <string name="adaptive_meal_settings_summary">Dynamic I:C, protein/fat learning and Virtual Pump simulation.</string>
+    <string name="adaptive_meal_dynamic_icr">Enable Dynamic I:C</string>
+    <string name="adaptive_meal_dynamic_icr_summary">Calculate a bounded I:C from sensitivity context and the learned meal model.</string>
+    <string name="adaptive_meal_icr_coupling">AutoISF → I:C coupling</string>
+    <string name="adaptive_meal_icr_coupling_summary">0 ignores sensitivity for I:C; 1 uses the full bounded ratio. Default: 0.35.</string>
+    <string name="adaptive_meal_icr_max_adjustment">Maximum Dynamic I:C adjustment</string>
+    <string name="adaptive_meal_icr_max_adjustment_summary">Maximum fractional change around profile I:C. 0.15 means ±15%%.</string>
+    <string name="adaptive_meal_neural_learning">Enable online I:C learner</string>
+    <string name="adaptive_meal_neural_learning_summary">Learn a personal I:C multiplier from completed clean meal episodes.</string>
+    <string name="adaptive_meal_neural_rate">Neural learning rate</string>
+    <string name="adaptive_meal_min_observations">Minimum clean observations</string>
+    <string name="adaptive_meal_dynamic_macro">Enable dynamic protein/fat coefficients</string>
+    <string name="adaptive_meal_dynamic_macro_summary">Slowly adapt protein/fat coefficients from late post-meal CGM outcomes.</string>
+    <string name="adaptive_meal_macro_step">Maximum P/F learning step</string>
+    <string name="adaptive_meal_macro_max_adjustment">Maximum learned P/F adjustment</string>
+    <string name="adaptive_meal_virtual_closed_loop">Virtual closed-loop simulator</string>
+    <string name="adaptive_meal_virtual_closed_loop_summary">Run the adaptive controller as a non-actuating virtual simulation and log every decision.</string>
+
 </resources>
