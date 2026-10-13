@@ -45,6 +45,8 @@ data class DynamicIcrShadowInput(
      * Shadow default is intentionally partial to reduce double-counting with AutoISF.
      */
     val sensitivityCoupling: Double = 0.35,
+    /** Maximum absolute change around profile I:C, e.g. 0.15 = +/-15%. */
+    val maxAdjustmentFraction: Double = 0.15,
 
     val currentBgMgdl: Double? = null,
     val minPredictedBgMgdl: Double? = null,
@@ -80,8 +82,8 @@ object DynamicIcrShadowEstimator {
     private const val MAX_SENSITIVITY_RATIO = 1.25
     private const val MIN_LEARNED_MULTIPLIER = 0.80
     private const val MAX_LEARNED_MULTIPLIER = 1.20
-    private const val MIN_DOSING_MULTIPLIER = 0.75
-    private const val MAX_DOSING_MULTIPLIER = 1.25
+    private const val ABSOLUTE_MIN_DOSING_MULTIPLIER = 0.60
+    private const val ABSOLUTE_MAX_DOSING_MULTIPLIER = 1.40
     private const val MIN_ABSORPTION_RATIO = 0.50
     private const val MAX_ABSORPTION_RATIO = 2.00
 
@@ -104,8 +106,11 @@ object DynamicIcrShadowEstimator {
         // Log-domain blending makes +x% and -x% adaptations approximately symmetric.
         val learnedUsed = exp(ln(learnedRaw) * confidence)
 
+        val maxAdjustment = input.maxAdjustmentFraction.coerceIn(0.02, 0.40)
+        val minMultiplier = (1.0 - maxAdjustment).coerceAtLeast(ABSOLUTE_MIN_DOSING_MULTIPLIER)
+        val maxMultiplier = (1.0 + maxAdjustment).coerceAtMost(ABSOLUTE_MAX_DOSING_MULTIPLIER)
         var dosingMultiplier =
-            (sensitivityMultiplier * learnedUsed).coerceIn(MIN_DOSING_MULTIPLIER, MAX_DOSING_MULTIPLIER)
+            (sensitivityMultiplier * learnedUsed).coerceIn(minMultiplier, maxMultiplier)
 
         val lowOrFalling =
             input.recentHypoglycemia ||
