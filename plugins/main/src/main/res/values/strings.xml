@@ -356,4 +356,10 @@
     <string name="adaptive_meal_virtual_closed_loop">Virtual closed-loop simulator</string>
     <string name="adaptive_meal_virtual_closed_loop_summary">Run the adaptive controller as a non-actuating virtual simulation and log every decision.</string>
 
+    <string name="dynamic_ic_profile_title">Dynamic I:C</string>
+    <string name="dynamic_ic_profile_summary">Profile-facing controls for the adaptive carbohydrate ratio. The same values are available in Settings.</string>
+    <string name="icr_coupling_profile">AutoISF coupling (0–1)</string>
+    <string name="icr_max_adjustment_profile">Max I:C adjustment (fraction)</string>
+    <string name="icr_learning_status">Neural learner: %1$d observations · confidence %2$.0f%% · multiplier ×%3$.3f</string>
+
 </resources>
