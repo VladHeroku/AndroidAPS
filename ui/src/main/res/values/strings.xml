@@ -168,4 +168,6 @@
     <string name="protein_fat_preview_value">Delayed equivalent: %.1f g · advisory %.2f U · I:C %.1f g/U</string>
     <string name="protein_fat_preview_note">Research preview only. This entry is logged for analysis and does not change pump insulin delivery.</string>
 
+    <string name="wizard_macro_preview">Dynamic I:C %.1f g/U (profile %.1f) · delayed P/F eq %.1f g · advisory %.2f U</string>
+
 </resources>
