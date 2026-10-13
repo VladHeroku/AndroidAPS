@@ -118,7 +118,10 @@ object ProteinFatAdaptiveLearner {
         val proteinG: Double,
         val fatG: Double,
         val lateGlucoseErrorMgdl: Double,
-        val cleanObservation: Boolean
+        val cleanObservation: Boolean,
+        val hypoglycemiaOccurred: Boolean = false,
+        val stepLimit: Double = 0.03,
+        val maxAdjustment: Double = 0.30
     )
 
     fun update(config: ProteinFatProfileConfig, outcome: Outcome): ProteinFatProfileConfig {
@@ -126,12 +129,17 @@ object ProteinFatAdaptiveLearner {
         val macroTotal = outcome.proteinG.coerceAtLeast(0.0) + outcome.fatG.coerceAtLeast(0.0)
         if (macroTotal < 10.0) return config
 
-        val step = (outcome.lateGlucoseErrorMgdl / 100.0).coerceIn(-0.03, 0.03)
+        val stepLimit = outcome.stepLimit.coerceIn(0.005, 0.10)
+        var step = (outcome.lateGlucoseErrorMgdl / 100.0).coerceIn(-stepLimit, stepLimit)
+        if (outcome.hypoglycemiaOccurred && step > 0.0) step = 0.0
         val proteinShare = if (macroTotal > 0) outcome.proteinG.coerceAtLeast(0.0) / macroTotal else 0.0
         val fatShare = 1.0 - proteinShare
+        val maxAdjustment = outcome.maxAdjustment.coerceIn(0.05, 0.60)
+        val lower = 1.0 - maxAdjustment
+        val upper = 1.0 + maxAdjustment
 
-        val newProtein = (config.learnedProteinMultiplier * (1.0 + step * proteinShare)).coerceIn(0.70, 1.30)
-        val newFat = (config.learnedFatMultiplier * (1.0 + step * fatShare)).coerceIn(0.70, 1.30)
+        val newProtein = (config.learnedProteinMultiplier * (1.0 + step * proteinShare)).coerceIn(lower, upper)
+        val newFat = (config.learnedFatMultiplier * (1.0 + step * fatShare)).coerceIn(lower, upper)
         val newConfidence = (config.learningConfidence + 0.04).coerceAtMost(1.0)
 
         return config.copy(
