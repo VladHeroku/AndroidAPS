@@ -539,7 +539,7 @@ class WizardDialog : DaggerDialogFragment() {
             val prediction = learner.predict(
                 OnlineMealLearner.Features(
                     hourOfDay = calendar.get(Calendar.HOUR_OF_DAY) + calendar.get(Calendar.MINUTE) / 60.0,
-                    carbsG = carbsAfterConstraint,
+                    carbsG = carbsAfterConstraint.toDouble(),
                     proteinG = protein,
                     fatG = fat,
                     preMealBgMgdl = bgMgdl ?: 110.0,
@@ -589,7 +589,7 @@ class WizardDialog : DaggerDialogFragment() {
             profileName = profileName,
             proteinG = protein,
             fatG = fat,
-            carbsG = carbsAfterConstraint,
+            carbsG = carbsAfterConstraint.toDouble(),
             delayedCarbEquivalentG = macroPreview.delayedCarbEquivalentG,
             advisoryInsulinU = macroPreview.advisoryInsulinU,
             dynamicIcrGPerU = dynamicIcr.dosingIcrGPerU,
