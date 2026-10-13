@@ -1,9 +1,9 @@
-name: Adaptive Meal Preview 3.4.2.6
+name: Adaptive Meal Preview2 3.4.2.6
 
 on:
   push:
     branches:
-      - feature/3426-adaptive-meal-preview
+      - feature/3426-adaptive-meal-preview2
   pull_request:
     branches:
       - master
@@ -35,7 +35,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AAPS-3.4.2.6-AdaptiveMeal-Preview1
+          name: AAPS-3.4.2.6-AdaptiveMeal-Preview2
           path: app/build/outputs/apk/full/debug/*.apk
           if-no-files-found: error
           retention-days: 30
