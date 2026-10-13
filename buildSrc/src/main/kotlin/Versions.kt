@@ -5,8 +5,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 object Versions {
 
     // On change edit aaps-ci.yml
-    const val appVersion = "3.4.2.6-adaptive-meal-preview1"
-    const val versionCode = 1501
+    const val appVersion = "3.4.2.6-adaptive-meal-preview2"
+    const val versionCode = 1502
 
     const val compileSdk = 36
     const val minSdk = 31
