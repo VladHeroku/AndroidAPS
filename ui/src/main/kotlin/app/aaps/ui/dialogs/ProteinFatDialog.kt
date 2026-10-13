@@ -6,7 +6,6 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.objects.meal.ProteinFatEntry
@@ -22,7 +21,6 @@ class ProteinFatDialog : DialogFragmentWithDate() {
 
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var profileFunction: ProfileFunction
-    @Inject lateinit var preferences: Preferences
 
     private var _binding: DialogProteinFatBinding? = null
     private val binding get() = _binding!!
