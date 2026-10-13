@@ -9,6 +9,9 @@ enum class StringNonKey(
 ) : StringNonPreferenceKey {
 
     QuickWizard(key = "QuickWizard", defaultValue = "[]"),
+    MealMacroProfileConfig(key = "meal_macro_profile_config", defaultValue = "{}"),
+    MealMacroPending(key = "meal_macro_pending", defaultValue = ""),
+    MealMacroHistory(key = "meal_macro_history", defaultValue = "[]"),
     WearCwfWatchfaceName(key = "wear_cwf_watchface_name", defaultValue = ""),
     WearCwfAuthorVersion(key = "wear_cwf_author_version", defaultValue = ""),
     WearCwfFileName(key = "wear_cwf_filename", defaultValue = ""),
