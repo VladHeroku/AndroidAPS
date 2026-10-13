@@ -305,4 +305,14 @@
     <string name="overview_show_steps">Действия</string>
     <string name="steps_shortname">ШАГИ</string>
     <string name="simple_mode_enabled">Простой режим включен</string>
+    <string name="macro_short">Б/Ж</string>
+    <string name="macro_profile_title">Модель белков и жиров</string>
+    <string name="macro_profile_summary">Фиксированные коэффициенты задают отложенный углеводный эквивалент на 1 г белка/жира. Динамическое обучение может постепенно корректировать их по чистым постпрандиальным эпизодам.</string>
+    <string name="protein_coefficient">Коэффициент белка (г экв / г)</string>
+    <string name="fat_coefficient">Коэффициент жира (г экв / г)</string>
+    <string name="macro_dynamic_learning">Включить динамическое обучение Б/Ж</string>
+    <string name="macro_learning_status">Обученные множители: белок %.3f, жир %.3f · уверенность %.0f%%</string>
+    <string name="macro_advisory_only">Пробная версия: Б/Ж и Dynamic I:C только показывают рекомендацию и не меняют подачу инсулина.</string>
+    <string name="macro_button">Б/Ж</string>
+
 </resources>
