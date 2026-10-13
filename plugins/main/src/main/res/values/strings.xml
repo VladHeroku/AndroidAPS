@@ -327,4 +327,14 @@
     <string name="steps_shortname">STEPS</string>
     <string name="simple_mode_enabled">Simple mode enabled</string>
 
+    <string name="macro_short">P/F</string>
+    <string name="macro_profile_title">Protein / fat meal model</string>
+    <string name="macro_profile_summary">Fixed coefficients define delayed carbohydrate-equivalent per gram of protein/fat. Dynamic learning can adjust them gradually from clean meal outcomes.</string>
+    <string name="protein_coefficient">Protein coefficient (g eq / g)</string>
+    <string name="fat_coefficient">Fat coefficient (g eq / g)</string>
+    <string name="macro_dynamic_learning">Enable dynamic protein/fat learning</string>
+    <string name="macro_learning_status">Learned multipliers: protein %.3f, fat %.3f · confidence %.0f%%</string>
+    <string name="macro_advisory_only">Research preview: protein/fat and Dynamic I:C are advisory only and do not alter insulin delivery.</string>
+    <string name="macro_button">P/F</string>
+
 </resources>
