@@ -24,7 +24,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Unit tests for adaptive meal modules
-        run: ./gradlew :core:objects:testDebugUnitTest --tests "*OnlineMealLearnerTest*" --stacktrace
+        run: ./gradlew :core:objects:testFullDebugUnitTest --tests "*OnlineMealLearnerTest*" --stacktrace
 
       - name: Build Full Debug APK
         run: ./gradlew :app:assembleFullDebug --stacktrace
