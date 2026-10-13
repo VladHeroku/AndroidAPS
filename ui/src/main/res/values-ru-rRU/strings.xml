@@ -161,4 +161,11 @@
         <item>Только положительный</item>
         <item>Только отрицательный</item>
     </string-array>
+    <string name="protein_fat_title">Белки / жиры</string>
+    <string name="protein_g">Белки (г)</string>
+    <string name="fat_g">Жиры (г)</string>
+    <string name="protein_fat_preview_value">Отложенный эквивалент: %.1f г · рекомендация %.2f ЕД · I:C %.1f г/ЕД</string>
+    <string name="protein_fat_preview_note">Пробный режим. Запись сохраняется для анализа и не изменяет подачу инсулина помпой.</string>
+    <string name="wizard_macro_preview">Dynamic I:C %.1f г/ЕД (профиль %.1f) · отложенный эквивалент Б/Ж %.1f г · рекомендация %.2f ЕД</string>
+
 </resources>
