@@ -67,7 +67,26 @@ class ProteinFatDialog : DialogFragmentWithDate() {
         val protein = binding.protein.value
         val fat = binding.fat.value
         if (protein <= 0.0 && fat <= 0.0) return true
-        val entry = ProteinFatEntry(dateUtil.now(), profileFunction.getProfileName(), protein, fat)
+        val profile = profileFunction.getProfile() ?: return true
+        val profileName = profileFunction.getProfileName()
+        val result = ProteinFatShadowModel.estimate(
+            protein,
+            fat,
+            ProteinFatProfileStore.load(preferences, profileName),
+            profile.getIc()
+        )
+        val entry = ProteinFatEntry(
+            timestamp = dateUtil.now(),
+            profileName = profileName,
+            proteinG = protein,
+            fatG = fat,
+            delayedCarbEquivalentG = result.delayedCarbEquivalentG,
+            advisoryInsulinU = result.advisoryInsulinU,
+            dynamicIcrGPerU = result.dynamicIcrGPerU,
+            profileIcrGPerU = profile.getIc(),
+            profileIsfMgdlPerU = profile.getProfileIsfMgdl(),
+            source = "protein-fat-dialog"
+        )
         ProteinFatEntryStore.setPending(preferences, entry)
         ProteinFatEntryStore.appendHistory(preferences, entry)
         return true
