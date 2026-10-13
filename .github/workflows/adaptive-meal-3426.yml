@@ -1,0 +1,38 @@
+name: Adaptive Meal Preview 3.4.2.6
+
+on:
+  push:
+    branches:
+      - feature/3426-adaptive-meal-preview
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Grant Gradle permission
+        run: chmod +x gradlew
+
+      - name: Run adaptive meal unit tests
+        run: ./gradlew :core:objects:testFullDebugUnitTest --tests "*DynamicIcrShadowEstimatorTest*" --tests "*ProteinFatShadowModelTest*" --tests "*OnlineMealLearnerTest*" --stacktrace
+
+      - name: Build Full Debug APK
+        run: ./gradlew :app:assembleFullDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AAPS-3.4.2.6-AdaptiveMeal-Preview1
+          path: app/build/outputs/apk/full/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
