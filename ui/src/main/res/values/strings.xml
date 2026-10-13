@@ -162,4 +162,10 @@
         <item>Negative only</item>
     </string-array>
 
+    <string name="protein_fat_title">Protein / fat</string>
+    <string name="protein_g">Protein (g)</string>
+    <string name="fat_g">Fat (g)</string>
+    <string name="protein_fat_preview_value">Delayed equivalent: %.1f g · advisory %.2f U · I:C %.1f g/U</string>
+    <string name="protein_fat_preview_note">Research preview only. This entry is logged for analysis and does not change pump insulin delivery.</string>
+
 </resources>
