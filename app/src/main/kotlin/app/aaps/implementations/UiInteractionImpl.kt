@@ -34,6 +34,7 @@ import app.aaps.ui.dialogs.InsulinDialog
 import app.aaps.ui.dialogs.LoopDialog
 import app.aaps.ui.dialogs.ProfileSwitchDialog
 import app.aaps.ui.dialogs.ProfileViewerDialog
+import app.aaps.ui.dialogs.ProteinFatDialog
 import app.aaps.ui.dialogs.SiteRotationDialog
 import app.aaps.ui.dialogs.TempBasalDialog
 import app.aaps.ui.dialogs.TempTargetDialog
@@ -125,6 +126,11 @@ class UiInteractionImpl @Inject constructor(
     override fun runCarbsDialog(fragmentManager: FragmentManager) {
         CarbsDialog()
             .show(fragmentManager, "CarbsDialog")
+    }
+
+    override fun runProteinFatDialog(fragmentManager: FragmentManager) {
+        ProteinFatDialog()
+            .show(fragmentManager, "ProteinFatDialog")
     }
 
     override fun runTempTargetDialog(fragmentManager: FragmentManager) {
