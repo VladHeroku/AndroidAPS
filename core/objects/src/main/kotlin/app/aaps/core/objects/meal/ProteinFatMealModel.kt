@@ -182,12 +182,30 @@ data class ProteinFatEntry(
     val timestamp: Long,
     val profileName: String,
     val proteinG: Double,
-    val fatG: Double
+    val fatG: Double,
+    val carbsG: Double = 0.0,
+    val delayedCarbEquivalentG: Double = 0.0,
+    val advisoryInsulinU: Double = 0.0,
+    val dynamicIcrGPerU: Double = 0.0,
+    val profileIcrGPerU: Double = 0.0,
+    val profileIsfMgdlPerU: Double = 0.0,
+    val preMealBgMgdl: Double = 0.0,
+    val preMealTrendMgdlPer5m: Double = 0.0,
+    val iobU: Double = 0.0,
+    val autoIsfRatio: Double = 1.0,
+    val recentTddRatio: Double = 1.0,
+    val neuralIcrMultiplier: Double = 1.0,
+    val neuralConfidence: Double = 0.0,
+    val source: String = "manual",
+    val processed: Boolean = false,
+    val cleanEpisode: Boolean? = null,
+    val lateGlucoseErrorMgdl: Double? = null,
+    val hypoOccurred: Boolean? = null
 )
 
 object ProteinFatEntryStore {
 
-    private const val MAX_HISTORY = 200
+    private const val MAX_HISTORY = 500
 
     fun setPending(preferences: Preferences, entry: ProteinFatEntry) {
         preferences.put(StringNonKey.MealMacroPending, toJson(entry).toString())
@@ -205,24 +223,77 @@ object ProteinFatEntryStore {
     }
 
     fun appendHistory(preferences: Preferences, entry: ProteinFatEntry) {
-        val arr = try { JSONArray(preferences.get(StringNonKey.MealMacroHistory)) } catch (_: Exception) { JSONArray() }
-        arr.put(toJson(entry))
-        val trimmed = JSONArray()
-        val start = max(0, arr.length() - MAX_HISTORY)
-        for (i in start until arr.length()) trimmed.put(arr.getJSONObject(i))
-        preferences.put(StringNonKey.MealMacroHistory, trimmed.toString())
+        val list = history(preferences).toMutableList()
+        list.removeAll { it.timestamp == entry.timestamp && it.profileName == entry.profileName }
+        list.add(entry)
+        val arr = JSONArray()
+        list.sortedBy { it.timestamp }.takeLast(MAX_HISTORY).forEach { arr.put(toJson(it)) }
+        preferences.put(StringNonKey.MealMacroHistory, arr.toString())
     }
+
+    fun update(preferences: Preferences, entry: ProteinFatEntry) = appendHistory(preferences, entry)
+
+    fun history(preferences: Preferences): List<ProteinFatEntry> {
+        val arr = try { JSONArray(preferences.get(StringNonKey.MealMacroHistory)) } catch (_: Exception) { JSONArray() }
+        val out = ArrayList<ProteinFatEntry>()
+        for (i in 0 until arr.length()) {
+            try { out.add(fromJson(arr.getJSONObject(i))) } catch (_: Exception) {}
+        }
+        return out.sortedBy { it.timestamp }
+    }
+
+    fun between(preferences: Preferences, from: Long, to: Long): List<ProteinFatEntry> =
+        history(preferences).filter { it.timestamp in from..to }
+
+    fun unprocessedReady(preferences: Preferences, now: Long, minAgeMs: Long = 6 * 60 * 60 * 1000L): List<ProteinFatEntry> =
+        history(preferences).filter { !it.processed && now - it.timestamp >= minAgeMs && now - it.timestamp <= 48 * 60 * 60 * 1000L }
 
     private fun toJson(entry: ProteinFatEntry) = JSONObject()
         .put("timestamp", entry.timestamp)
         .put("profile", entry.profileName)
         .put("protein", entry.proteinG)
         .put("fat", entry.fatG)
+        .put("carbs", entry.carbsG)
+        .put("delayedEq", entry.delayedCarbEquivalentG)
+        .put("advisoryInsulin", entry.advisoryInsulinU)
+        .put("dynamicIcr", entry.dynamicIcrGPerU)
+        .put("profileIcr", entry.profileIcrGPerU)
+        .put("profileIsf", entry.profileIsfMgdlPerU)
+        .put("preBg", entry.preMealBgMgdl)
+        .put("preTrend", entry.preMealTrendMgdlPer5m)
+        .put("iob", entry.iobU)
+        .put("autoIsfRatio", entry.autoIsfRatio)
+        .put("tddRatio", entry.recentTddRatio)
+        .put("neuralMultiplier", entry.neuralIcrMultiplier)
+        .put("neuralConfidence", entry.neuralConfidence)
+        .put("source", entry.source)
+        .put("processed", entry.processed)
+        .put("clean", entry.cleanEpisode)
+        .put("lateError", entry.lateGlucoseErrorMgdl)
+        .put("hypo", entry.hypoOccurred)
 
     private fun fromJson(obj: JSONObject) = ProteinFatEntry(
         timestamp = obj.getLong("timestamp"),
         profileName = obj.optString("profile", ""),
         proteinG = obj.optDouble("protein", 0.0),
-        fatG = obj.optDouble("fat", 0.0)
+        fatG = obj.optDouble("fat", 0.0),
+        carbsG = obj.optDouble("carbs", 0.0),
+        delayedCarbEquivalentG = obj.optDouble("delayedEq", 0.0),
+        advisoryInsulinU = obj.optDouble("advisoryInsulin", 0.0),
+        dynamicIcrGPerU = obj.optDouble("dynamicIcr", 0.0),
+        profileIcrGPerU = obj.optDouble("profileIcr", 0.0),
+        profileIsfMgdlPerU = obj.optDouble("profileIsf", 0.0),
+        preMealBgMgdl = obj.optDouble("preBg", 0.0),
+        preMealTrendMgdlPer5m = obj.optDouble("preTrend", 0.0),
+        iobU = obj.optDouble("iob", 0.0),
+        autoIsfRatio = obj.optDouble("autoIsfRatio", 1.0),
+        recentTddRatio = obj.optDouble("tddRatio", 1.0),
+        neuralIcrMultiplier = obj.optDouble("neuralMultiplier", 1.0),
+        neuralConfidence = obj.optDouble("neuralConfidence", 0.0),
+        source = obj.optString("source", "manual"),
+        processed = obj.optBoolean("processed", false),
+        cleanEpisode = if (obj.has("clean") && !obj.isNull("clean")) obj.optBoolean("clean") else null,
+        lateGlucoseErrorMgdl = if (obj.has("lateError") && !obj.isNull("lateError")) obj.optDouble("lateError") else null,
+        hypoOccurred = if (obj.has("hypo") && !obj.isNull("hypo")) obj.optBoolean("hypo") else null
     )
 }
