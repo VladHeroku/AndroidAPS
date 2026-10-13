@@ -150,6 +150,11 @@
                     android:layout_height="wrap_content"
                     android:text="@string/target_short" />
 
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/macro_short" />
+
             </com.google.android.material.tabs.TabLayout>
 
             <LinearLayout
@@ -308,6 +313,85 @@
                     android:layout_height="200dip"
                     android:layout_margin="20dp" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/macro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="@string/macro_profile_title"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/macro_profile_summary"
+                    android:textAppearance="?android:attr/textAppearanceSmall" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/protein_coefficient" />
+                    <app.aaps.core.ui.elements.NumberPicker
+                        android:id="@+id/macro_protein_coeff"
+                        android:layout_width="130dp"
+                        android:layout_height="40dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/fat_coefficient" />
+                    <app.aaps.core.ui.elements.NumberPicker
+                        android:id="@+id/macro_fat_coeff"
+                        android:layout_width="130dp"
+                        android:layout_height="40dp" />
+                </LinearLayout>
+
+                <CheckBox
+                    android:id="@+id/macro_dynamic"
+                    style="@style/Widget.App.CheckBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/macro_dynamic_learning" />
+
+                <TextView
+                    android:id="@+id/macro_learned_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="6dp"
+                    android:textAppearance="?android:attr/textAppearanceSmall" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="10dp"
+                    android:text="@string/macro_advisory_only"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textStyle="italic" />
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
