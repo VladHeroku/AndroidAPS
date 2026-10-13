@@ -27,7 +27,9 @@ import kotlin.math.tanh
 class OnlineMealLearner(
     private val hiddenSize: Int = 8,
     private val learningRate: Double = 0.0025,
-    private val l2: Double = 1e-4
+    private val l2: Double = 1e-4,
+    private val maxAdjustmentFraction: Double = 0.15,
+    private val minObservations: Int = 20
 ) {
 
     data class Features(
@@ -93,10 +95,13 @@ class OnlineMealLearner(
         }
         val raw = dot(w2, hidden) + b2
 
-        // Bound learned I:C change to roughly +/-15% in shadow mode.
+        // Bound learned I:C change around profile I:C.
         // Positive raw output = more insulin need -> lower I:C.
-        val boundedLogMultiplier = (-0.14 * tanh(raw))
-        val multiplier = exp(boundedLogMultiplier)
+        val maxAdj = maxAdjustmentFraction.coerceIn(0.02, 0.40)
+        val lower = 1.0 - maxAdj
+        val upper = 1.0 + maxAdj
+        val rawMultiplier = exp(-maxAdj * tanh(raw))
+        val multiplier = rawMultiplier.coerceIn(lower, upper)
 
         val dataConfidence = (observations / 40.0).coerceIn(0.0, 1.0)
         val errorConfidence = (1.0 - emaAbsError.coerceIn(0.0, 1.0))
@@ -106,7 +111,7 @@ class OnlineMealLearner(
             icrMultiplier = multiplier,
             confidence = confidence,
             observations = observations,
-            readyForAdvisory = observations >= MIN_OBSERVATIONS && confidence >= 0.45,
+            readyForAdvisory = observations >= minObservations.coerceIn(5, 200) && confidence >= 0.45,
             rawNetworkOutput = raw
         )
     }
@@ -200,6 +205,5 @@ class OnlineMealLearner(
 
     companion object {
         private const val INPUTS = 10
-        private const val MIN_OBSERVATIONS = 20
     }
 }
