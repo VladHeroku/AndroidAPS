@@ -14,6 +14,7 @@ enum class StringNonKey(
     MealMacroHistory(key = "meal_macro_history", defaultValue = "[]"),
     AdaptiveMealNeuralState(key = "adaptive_meal_neural_state", defaultValue = "{}"),
     AdaptiveMealLearningLog(key = "adaptive_meal_learning_log", defaultValue = "[]"),
+    AdaptiveMealVirtualState(key = "adaptive_meal_virtual_state", defaultValue = "{}"),
     WearCwfWatchfaceName(key = "wear_cwf_watchface_name", defaultValue = ""),
     WearCwfAuthorVersion(key = "wear_cwf_author_version", defaultValue = ""),
     WearCwfFileName(key = "wear_cwf_filename", defaultValue = ""),
