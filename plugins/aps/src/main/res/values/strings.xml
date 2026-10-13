@@ -221,4 +221,23 @@
     <string name="openapsama_iob_threshold_percent_summary" formatted="false">Percentage of maxIOB above which SMBs are disabled.\nDefault value: 100%\nWith 100% this feature is effectively disabled.</string>
     <string name="openapsama_iob_threshold_percent">maxIOB threshold percent for SMB\n(iob_threshold_percent)</string>
 
+    <string name="adaptive_meal_settings_title">Adaptive meal / Dynamic I:C</string>
+    <string name="adaptive_meal_settings_summary">Dynamic I:C, protein/fat learning and Virtual Pump closed-loop simulation.</string>
+    <string name="adaptive_meal_dynamic_icr">Enable Dynamic I:C</string>
+    <string name="adaptive_meal_dynamic_icr_summary">Calculate a bounded I:C from AutoISF context and the learned meal model.</string>
+    <string name="adaptive_meal_icr_coupling">AutoISF → I:C coupling</string>
+    <string name="adaptive_meal_icr_coupling_summary">0 ignores AutoISF for I:C; 1 mirrors the full bounded sensitivity ratio. Default: 0.35.</string>
+    <string name="adaptive_meal_icr_max_adjustment">Maximum Dynamic I:C adjustment</string>
+    <string name="adaptive_meal_icr_max_adjustment_summary">Maximum fractional change around profile I:C. 0.15 means ±15%%.</string>
+    <string name="adaptive_meal_neural_learning">Enable online meal learner</string>
+    <string name="adaptive_meal_neural_learning_summary">Learn a personal I:C multiplier from completed clean meal episodes.</string>
+    <string name="adaptive_meal_neural_rate">Neural learning rate</string>
+    <string name="adaptive_meal_min_observations">Minimum clean observations</string>
+    <string name="adaptive_meal_dynamic_macro">Enable dynamic protein/fat coefficients</string>
+    <string name="adaptive_meal_dynamic_macro_summary">Slowly adapt protein/fat coefficients from late post-meal CGM outcomes.</string>
+    <string name="adaptive_meal_macro_step">Maximum protein/fat learning step</string>
+    <string name="adaptive_meal_macro_max_adjustment">Maximum learned protein/fat adjustment</string>
+    <string name="adaptive_meal_virtual_closed_loop">Virtual Pump closed-loop simulation</string>
+    <string name="adaptive_meal_virtual_closed_loop_summary">Use Dynamic I:C and delayed protein/fat signal inside AutoISF only when the active pump is Virtual Pump.</string>
+
 </resources>
