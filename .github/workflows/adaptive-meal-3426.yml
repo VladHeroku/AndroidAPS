@@ -9,6 +9,10 @@ on:
       - master
   workflow_dispatch:
 
+concurrency:
+  group: adaptive-meal-preview2
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
