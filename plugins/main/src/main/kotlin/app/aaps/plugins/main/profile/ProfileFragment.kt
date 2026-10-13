@@ -21,6 +21,7 @@ import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventLocalProfileChanged
@@ -31,6 +32,8 @@ import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.objects.profile.ProfileSealed
+import app.aaps.core.objects.meal.MealMacroProfileConfig
+import app.aaps.core.objects.meal.MealMacroPreviewStore
 import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.core.ui.extensions.toVisibility
 import app.aaps.plugins.main.R
@@ -62,11 +65,21 @@ class ProfileFragment : DaggerFragment() {
     @Inject lateinit var uiInteraction: UiInteraction
     @Inject lateinit var decimalFormatter: DecimalFormatter
     @Inject lateinit var loop: Loop
+    @Inject lateinit var sp: SP
 
     private var disposable: CompositeDisposable = CompositeDisposable()
     private var inMenu = false
     private var queryingProtection = false
     private var basalView: TimeListEdit? = null
+    private var loadingMacroUi = false
+
+    private val macroTextWatch = object : TextWatcher {
+        override fun afterTextChanged(s: Editable) {}
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+            if (!loadingMacroUi) saveMacroConfigFromUi()
+        }
+    }
 
     private val save = Runnable {
         doEdit()
@@ -122,6 +135,9 @@ class ProfileFragment : DaggerFragment() {
         })
         binding.diaLabel.labelFor = binding.dia.editTextId
         binding.unlock.setOnClickListener { queryProtection() }
+        binding.macroDynamic.setOnCheckedChangeListener { _, _ ->
+            if (!loadingMacroUi) saveMacroConfigFromUi()
+        }
 
         val profiles = profilePlugin.profile?.getProfileList() ?: ArrayList()
         val activeProfile = profileFunction.getProfileName()
@@ -145,6 +161,23 @@ class ProfileFragment : DaggerFragment() {
         binding.profileList.setText(currentProfile.name)
         binding.dia.setParams(currentProfile.dia, hardLimits.minDia(), hardLimits.maxDia(), 0.1, DecimalFormat("0.0"), false, null, textWatch)
         binding.dia.tag = "LP_DIA"
+
+        loadingMacroUi = true
+        val macroConfig = MealMacroPreviewStore.loadProfile(sp, currentProfile.name)
+        binding.macroProteinCoeff.setParams(
+            macroConfig.proteinCarbEqPerGram, 0.0, 2.0, 0.01, DecimalFormat("0.00"), false, null, macroTextWatch
+        )
+        binding.macroFatCoeff.setParams(
+            macroConfig.fatCarbEqPerGram, 0.0, 2.0, 0.01, DecimalFormat("0.00"), false, null, macroTextWatch
+        )
+        binding.macroDynamic.isChecked = macroConfig.dynamicMacroLearningEnabled
+        binding.macroLearnedStatus.text = rh.gs(
+            R.string.macro_learning_status,
+            macroConfig.learnedProteinMultiplier,
+            macroConfig.learnedFatMultiplier,
+            macroConfig.learningConfidence * 100.0
+        )
+        loadingMacroUi = false
         TimeListEdit(
             requireContext(),
             aapsLogger,
@@ -421,6 +454,24 @@ class ProfileFragment : DaggerFragment() {
         binding.isf.visibility = (position == 2).toVisibility()
         binding.basal.visibility = (position == 3).toVisibility()
         binding.target.visibility = (position == 4).toVisibility()
+        binding.macro.visibility = (position == 5).toVisibility()
+    }
+
+    private fun saveMacroConfigFromUi() {
+        val profileName = profilePlugin.currentProfile()?.name ?: return
+        val old = MealMacroPreviewStore.loadProfile(sp, profileName)
+        val updated = old.copy(
+            proteinCarbEqPerGram = SafeParse.stringToDouble(binding.macroProteinCoeff.text).coerceIn(0.0, 2.0),
+            fatCarbEqPerGram = SafeParse.stringToDouble(binding.macroFatCoeff.text).coerceIn(0.0, 2.0),
+            dynamicMacroLearningEnabled = binding.macroDynamic.isChecked
+        )
+        MealMacroPreviewStore.saveProfile(sp, profileName, updated)
+        binding.macroLearnedStatus.text = rh.gs(
+            R.string.macro_learning_status,
+            updated.learnedProteinMultiplier,
+            updated.learnedFatMultiplier,
+            updated.learningConfidence * 100.0
+        )
     }
 
     private fun updateProtectedUi() {
