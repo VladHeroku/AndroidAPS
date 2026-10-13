@@ -40,6 +40,7 @@ import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
+import app.aaps.core.interfaces.pump.VirtualPump
 import app.aaps.core.interfaces.profiling.Profiler
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -62,6 +63,13 @@ import app.aaps.core.objects.extensions.put
 import app.aaps.core.objects.extensions.store
 import app.aaps.core.objects.extensions.target
 import app.aaps.core.objects.profile.ProfileSealed
+import app.aaps.core.objects.meal.DynamicIcrShadowEstimator
+import app.aaps.core.objects.meal.DynamicIcrShadowInput
+import app.aaps.core.objects.meal.OnlineMealLearner
+import app.aaps.core.objects.meal.OnlineMealLearnerStore
+import app.aaps.core.objects.meal.ProteinFatEntryStore
+import app.aaps.core.objects.meal.ProteinFatProfileStore
+import app.aaps.core.objects.meal.ProteinFatShadowModel
 import app.aaps.core.utils.MidnightUtils
 import app.aaps.core.validators.preferences.AdaptiveDoublePreference
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
@@ -72,6 +80,7 @@ import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.events.EventOpenAPSUpdateGui
 import app.aaps.plugins.aps.events.EventResetOpenAPSGui
 import org.json.JSONObject
+import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Provider
@@ -163,6 +172,87 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
     }
 
     override fun supportsDynamicIsf() = true //: Boolean = preferences.get(BooleanKey.ApsUseAutoIsf)
+
+    /**
+     * Preview3 actuation gate: Dynamic I:C is exposed to AAPS only when the active pump is the
+     * built-in Virtual Pump and the explicit virtual closed-loop switch is enabled.
+     * A physical pump therefore always receives the original profile I:C path.
+     */
+    override fun supportsDynamicIc(): Boolean =
+        preferences.get(BooleanKey.AdaptiveMealVirtualClosedLoop) &&
+            preferences.get(BooleanKey.AdaptiveMealDynamicIcrEnabled) &&
+            activePlugin.activePump is VirtualPump
+
+    override fun getIc(profile: Profile): Double? = dynamicIcForVirtualLoop(dateUtil.now(), profile)
+
+    override fun getIc(timestamp: Long, profile: Profile): Double? {
+        // Do not retrospectively rewrite historical I:C. Dynamic I:C is a live controller state.
+        if (kotlin.math.abs(dateUtil.now() - timestamp) > T.mins(15).msecs()) {
+            return profile.getIcTimeFromMidnight(MidnightUtils.secondsFromMidnight(timestamp))
+        }
+        return dynamicIcForVirtualLoop(timestamp, profile)
+    }
+
+    private fun dynamicIcForVirtualLoop(timestamp: Long, profile: Profile): Double? {
+        if (!supportsDynamicIc()) return null
+
+        val staticIcr = profile.getIcTimeFromMidnight(MidnightUtils.secondsFromMidnight(timestamp))
+        val profileIsf = profile.getProfileIsfMgdl()
+        val dynamicIsf = autoISF(profile).takeIf { it > 0.0 } ?: profileIsf
+        val glucoseStatus = glucoseStatusProvider.glucoseStatusData
+        val bg = glucoseStatus?.glucose
+        val trend = glucoseStatus?.delta
+
+        var learnedMultiplier = 1.0
+        var learnedConfidence = 0.0
+
+        if (preferences.get(BooleanKey.AdaptiveMealNeuralLearningEnabled)) {
+            val learner = OnlineMealLearnerStore.load(
+                preferences = preferences,
+                profileName = profileFunction.getProfileName(),
+                learningRate = preferences.get(DoubleKey.AdaptiveMealNeuralLearningRate),
+                maxAdjustmentFraction = preferences.get(DoubleKey.AdaptiveMealIcrMaxAdjustment),
+                minObservations = preferences.get(IntKey.AdaptiveMealMinObservations)
+            )
+            val latest = ProteinFatEntryStore
+                .between(preferences, timestamp - T.hours(6).msecs(), timestamp)
+                .lastOrNull()
+            val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
+            val iob = iobCobCalculator.calculateIobFromBolus().iob +
+                iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().basaliob
+            val prediction = learner.predict(
+                OnlineMealLearner.Features(
+                    hourOfDay = calendar.get(Calendar.HOUR_OF_DAY) + calendar.get(Calendar.MINUTE) / 60.0,
+                    carbsG = latest?.carbsG ?: 0.0,
+                    proteinG = latest?.proteinG ?: 0.0,
+                    fatG = latest?.fatG ?: 0.0,
+                    preMealBgMgdl = latest?.preMealBgMgdl?.takeIf { it > 0.0 } ?: (bg ?: 110.0),
+                    preMealTrendMgdlPer5m = latest?.preMealTrendMgdlPer5m ?: (trend ?: 0.0),
+                    iobU = iob,
+                    profileIcrGPerU = staticIcr,
+                    autoIsfRatio = (dynamicIsf / profileIsf).coerceIn(0.4, 2.5),
+                    recentTddRatio = latest?.recentTddRatio ?: 1.0
+                )
+            )
+            learnedMultiplier = prediction.icrMultiplier
+            learnedConfidence = prediction.confidence
+        }
+
+        return DynamicIcrShadowEstimator.estimate(
+            DynamicIcrShadowInput(
+                profileIcrGPerU = staticIcr,
+                profileIsfMgdlPerU = profileIsf,
+                sensitivityIsfMgdlPerU = dynamicIsf,
+                absorptionIsfMgdlPerU = profileIsf,
+                learnedMealMultiplier = learnedMultiplier,
+                learningConfidence = learnedConfidence,
+                sensitivityCoupling = preferences.get(DoubleKey.AdaptiveMealIcrSensitivityCoupling),
+                maxAdjustmentFraction = preferences.get(DoubleKey.AdaptiveMealIcrMaxAdjustment),
+                currentBgMgdl = bg,
+                trendMgdlPer5m = trend
+            )
+        ).dosingIcrGPerU
+    }
 
     override fun getIsfMgdl(profile: Profile, caller: String): Double? {
         val start = dateUtil.now()
@@ -319,6 +409,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
         } else autosensResult.sensResult = "autosens disabled"
         val iobArray = iobCobCalculator.calculateIobArrayForSMB(autosensResult, SMBDefaults.exercise_mode, preferences.get(IntKey.ApsAutoIsfHalfBasalExerciseTarget), isTempTarget)
         val mealData = iobCobCalculator.getMealDataWithWaitingForCalculationFinish()
+        applyProteinFatToVirtualMealData(mealData, profile, dateUtil.now())
         val iobData = iobArray[0]
         val profile_percentage = if (profile is ProfileSealed.EPS) profile.value.originalPercentage else 100
         val microBolusAllowed = constraintsChecker.isSMBModeEnabled(ConstraintObject(tempBasalFallback.not(), aapsLogger)).also { inputConstraints.copyReasons(it) }.value()
@@ -551,6 +642,55 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
 
     fun convert_bg_to_units(value: Double, profile: OapsProfileAutoIsf): Double =
         if (profile.out_units == "mmol/L") value * Constants.MGDL_TO_MMOLL else value
+
+    /**
+     * Adds only the still-unreleased protein/fat carbohydrate-equivalent to the transient MealData
+     * object used by AutoISF. No database carbohydrate is created here, so the same quantity cannot
+     * accumulate from loop to loop. This path is hard-gated to Virtual Pump.
+     */
+    private fun applyProteinFatToVirtualMealData(
+        mealData: app.aaps.core.interfaces.aps.MealData,
+        profile: Profile,
+        now: Long
+    ) {
+        if (!preferences.get(BooleanKey.AdaptiveMealVirtualClosedLoop)) return
+        if (!preferences.get(BooleanKey.AdaptiveMealDynamicMacroEnabled)) return
+        if (activePlugin.activePump !is VirtualPump) return
+
+        val entries = ProteinFatEntryStore.between(preferences, now - T.hours(8).msecs(), now)
+        if (entries.isEmpty()) return
+
+        var totalEquivalent = 0.0
+        var remainingEquivalent = 0.0
+        var newestMeal = mealData.lastCarbTime
+
+        entries.forEach { entry ->
+            val ageMinutes = ((now - entry.timestamp) / T.mins(1).msecs()).toInt()
+            if (ageMinutes !in 0..480) return@forEach
+
+            val cfg = ProteinFatProfileStore.load(preferences, entry.profileName)
+            val icr = dynamicIcForVirtualLoop(now, profile)
+                ?: profile.getIcTimeFromMidnight(MidnightUtils.secondsFromMidnight(now))
+            val result = ProteinFatShadowModel.estimate(entry.proteinG, entry.fatG, cfg, icr)
+
+            totalEquivalent += result.delayedCarbEquivalentG
+            val released = result.kineticCurve
+                .filter { it.minutesFromMeal <= ageMinutes }
+                .sumOf { it.carbEquivalentG }
+                .coerceAtMost(result.delayedCarbEquivalentG)
+            remainingEquivalent += (result.delayedCarbEquivalentG - released).coerceAtLeast(0.0)
+            if (entry.timestamp > newestMeal) newestMeal = entry.timestamp
+        }
+
+        if (totalEquivalent <= 0.0) return
+        mealData.carbs += totalEquivalent
+        mealData.mealCOB += remainingEquivalent
+        mealData.lastCarbTime = newestMeal
+        aapsLogger.debug(
+            LTag.APS,
+            "AdaptiveMeal VirtualLoop: PF totalEq=$totalEquivalent g remaining=$remainingEquivalent g"
+        )
+    }
 
     fun autoISF(profile: Profile): Double {
         val sens = profile.getProfileIsfMgdl()
