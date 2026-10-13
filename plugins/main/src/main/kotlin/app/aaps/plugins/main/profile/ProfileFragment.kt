@@ -31,6 +31,8 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.meal.ProteinFatProfileStore
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.core.ui.extensions.toVisibility
@@ -63,11 +65,21 @@ class ProfileFragment : DaggerFragment() {
     @Inject lateinit var uiInteraction: UiInteraction
     @Inject lateinit var decimalFormatter: DecimalFormatter
     @Inject lateinit var loop: Loop
+    @Inject lateinit var preferences: Preferences
 
     private var disposable: CompositeDisposable = CompositeDisposable()
     private var inMenu = false
     private var queryingProtection = false
     private var basalView: TimeListEdit? = null
+    private var loadingMacroUi = false
+
+    private val macroTextWatch = object : TextWatcher {
+        override fun afterTextChanged(s: Editable) {}
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+            if (!loadingMacroUi) saveMacroConfigFromUi()
+        }
+    }
 
     private val save = Runnable {
         doEdit()
@@ -123,6 +135,9 @@ class ProfileFragment : DaggerFragment() {
         })
         binding.diaLabel.labelFor = binding.dia.editTextId
         binding.unlock.setOnClickListener { queryProtection() }
+        binding.macroDynamic.setOnCheckedChangeListener { _, _ ->
+            if (!loadingMacroUi) saveMacroConfigFromUi()
+        }
 
         val profiles = profilePlugin.profile?.getProfileList() ?: ArrayList()
         val activeProfile = profileFunction.getProfileName()
@@ -146,6 +161,23 @@ class ProfileFragment : DaggerFragment() {
         binding.profileList.setText(currentProfile.name)
         binding.dia.setParams(currentProfile.dia, hardLimits.minDia(), hardLimits.maxDia(), 0.1, DecimalFormat("0.0"), false, null, textWatch)
         binding.dia.tag = "LP_DIA"
+
+        loadingMacroUi = true
+        val macroConfig = ProteinFatProfileStore.load(preferences, currentProfile.name)
+        binding.macroProteinCoeff.setParams(
+            macroConfig.proteinCarbEqPerGram, 0.0, 2.0, 0.01, DecimalFormat("0.00"), false, null, macroTextWatch
+        )
+        binding.macroFatCoeff.setParams(
+            macroConfig.fatCarbEqPerGram, 0.0, 2.0, 0.01, DecimalFormat("0.00"), false, null, macroTextWatch
+        )
+        binding.macroDynamic.isChecked = macroConfig.dynamicLearnerEnabled
+        binding.macroLearnedStatus.text = rh.gs(
+            R.string.macro_learning_status,
+            macroConfig.learnedProteinMultiplier,
+            macroConfig.learnedFatMultiplier,
+            macroConfig.learningConfidence * 100.0
+        )
+        loadingMacroUi = false
         TimeListEdit(
             requireContext(),
             aapsLogger,
@@ -422,6 +454,24 @@ class ProfileFragment : DaggerFragment() {
         binding.isf.visibility = (position == 2).toVisibility()
         binding.basal.visibility = (position == 3).toVisibility()
         binding.target.visibility = (position == 4).toVisibility()
+        binding.macro.visibility = (position == 5).toVisibility()
+    }
+
+    private fun saveMacroConfigFromUi() {
+        val profileName = profilePlugin.currentProfile()?.name ?: return
+        val old = ProteinFatProfileStore.load(preferences, profileName)
+        val updated = old.copy(
+            proteinCarbEqPerGram = binding.macroProteinCoeff.value.coerceIn(0.0, 2.0),
+            fatCarbEqPerGram = binding.macroFatCoeff.value.coerceIn(0.0, 2.0),
+            dynamicLearnerEnabled = binding.macroDynamic.isChecked
+        )
+        ProteinFatProfileStore.save(preferences, profileName, updated)
+        binding.macroLearnedStatus.text = rh.gs(
+            R.string.macro_learning_status,
+            updated.learnedProteinMultiplier,
+            updated.learnedFatMultiplier,
+            updated.learningConfidence * 100.0
+        )
     }
 
     private fun updateProtectedUi() {
