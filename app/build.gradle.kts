@@ -103,7 +103,7 @@ android {
     productFlavors {
         create("full") {
             isDefault = true
-            applicationId = "info.nightscout.androidaps"
+            applicationId = "info.nightscout.androidaps.adaptivepreview"
             dimension = "standard"
             resValue("string", "app_name", "AAPS")
             versionName = Versions.appVersion
