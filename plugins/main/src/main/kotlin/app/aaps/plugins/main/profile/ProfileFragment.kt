@@ -31,7 +31,12 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.DoubleKey
+import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.meal.OnlineMealLearner
+import app.aaps.core.objects.meal.OnlineMealLearnerStore
 import app.aaps.core.objects.meal.ProteinFatProfileStore
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.dialogs.OKDialog
@@ -45,6 +50,7 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.math.RoundingMode
 import java.text.DecimalFormat
+import java.util.Calendar
 import javax.inject.Inject
 
 class ProfileFragment : DaggerFragment() {
@@ -138,6 +144,12 @@ class ProfileFragment : DaggerFragment() {
         binding.macroDynamic.setOnCheckedChangeListener { _, _ ->
             if (!loadingMacroUi) saveMacroConfigFromUi()
         }
+        binding.dynamicIcrEnabled.setOnCheckedChangeListener { _, _ ->
+            if (!loadingMacroUi) saveMacroConfigFromUi()
+        }
+        binding.neuralIcEnabled.setOnCheckedChangeListener { _, _ ->
+            if (!loadingMacroUi) saveMacroConfigFromUi()
+        }
 
         val profiles = profilePlugin.profile?.getProfileList() ?: ArrayList()
         val activeProfile = profileFunction.getProfileName()
@@ -163,6 +175,16 @@ class ProfileFragment : DaggerFragment() {
         binding.dia.tag = "LP_DIA"
 
         loadingMacroUi = true
+        binding.dynamicIcrEnabled.isChecked = preferences.get(BooleanKey.AdaptiveMealDynamicIcrEnabled)
+        binding.neuralIcEnabled.isChecked = preferences.get(BooleanKey.AdaptiveMealNeuralLearningEnabled)
+        binding.icrCoupling.setParams(
+            preferences.get(DoubleKey.AdaptiveMealIcrSensitivityCoupling),
+            0.0, 1.0, 0.05, DecimalFormat("0.00"), false, null, macroTextWatch
+        )
+        binding.icrMaxAdjustment.setParams(
+            preferences.get(DoubleKey.AdaptiveMealIcrMaxAdjustment),
+            0.02, 0.40, 0.01, DecimalFormat("0.00"), false, null, macroTextWatch
+        )
         val macroConfig = ProteinFatProfileStore.load(preferences, currentProfile.name)
         binding.macroProteinCoeff.setParams(
             macroConfig.proteinCarbEqPerGram, 0.0, 2.0, 0.01, DecimalFormat("0.00"), false, null, macroTextWatch
@@ -176,6 +198,34 @@ class ProfileFragment : DaggerFragment() {
             macroConfig.learnedProteinMultiplier,
             macroConfig.learnedFatMultiplier,
             macroConfig.learningConfidence * 100.0
+        )
+        val icLearner = OnlineMealLearnerStore.load(
+            preferences,
+            currentProfile.name,
+            preferences.get(DoubleKey.AdaptiveMealNeuralLearningRate),
+            preferences.get(DoubleKey.AdaptiveMealIcrMaxAdjustment),
+            preferences.get(IntKey.AdaptiveMealMinObservations)
+        )
+        val calendar = Calendar.getInstance()
+        val icPrediction = icLearner.predict(
+            OnlineMealLearner.Features(
+                hourOfDay = calendar.get(Calendar.HOUR_OF_DAY) + calendar.get(Calendar.MINUTE) / 60.0,
+                carbsG = 0.0,
+                proteinG = 0.0,
+                fatG = 0.0,
+                preMealBgMgdl = 110.0,
+                preMealTrendMgdlPer5m = 0.0,
+                iobU = 0.0,
+                profileIcrGPerU = profileFunction.getProfile()?.getIc() ?: 10.0,
+                autoIsfRatio = 1.0,
+                recentTddRatio = 1.0
+            )
+        )
+        binding.icrLearningStatus.text = rh.gs(
+            R.string.icr_learning_status,
+            icPrediction.observations,
+            icPrediction.confidence * 100.0,
+            icPrediction.icrMultiplier
         )
         loadingMacroUi = false
         TimeListEdit(
@@ -466,6 +516,10 @@ class ProfileFragment : DaggerFragment() {
             dynamicLearnerEnabled = binding.macroDynamic.isChecked
         )
         ProteinFatProfileStore.save(preferences, profileName, updated)
+        preferences.put(BooleanKey.AdaptiveMealDynamicIcrEnabled, binding.dynamicIcrEnabled.isChecked)
+        preferences.put(BooleanKey.AdaptiveMealNeuralLearningEnabled, binding.neuralIcEnabled.isChecked)
+        preferences.put(DoubleKey.AdaptiveMealIcrSensitivityCoupling, binding.icrCoupling.value.coerceIn(0.0, 1.0))
+        preferences.put(DoubleKey.AdaptiveMealIcrMaxAdjustment, binding.icrMaxAdjustment.value.coerceIn(0.02, 0.40))
         binding.macroLearnedStatus.text = rh.gs(
             R.string.macro_learning_status,
             updated.learnedProteinMultiplier,
