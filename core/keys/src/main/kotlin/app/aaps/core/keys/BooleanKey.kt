@@ -62,6 +62,10 @@ enum class BooleanKey(
     ApsAutoIsfLowTtLowersSens("low_temptarget_lowers_sensitivity", false, defaultedBySM = true),
     ApsUseAutoIsfWeights("openapsama_enable_autoISF", false, defaultedBySM = true),
     ApsAutoIsfSmbOnEvenTarget("Enable alternative activation of SMB always", false, defaultedBySM = true),   // profile target
+    AdaptiveMealDynamicIcrEnabled("adaptive_meal_dynamic_icr_enabled", true, defaultedBySM = true),
+    AdaptiveMealNeuralLearningEnabled("adaptive_meal_neural_learning_enabled", true, defaultedBySM = true),
+    AdaptiveMealDynamicMacroEnabled("adaptive_meal_dynamic_macro_enabled", true, defaultedBySM = true),
+    AdaptiveMealVirtualClosedLoop("adaptive_meal_virtual_closed_loop", false, defaultedBySM = true),
 
     MaintenanceEnableFabric("enable_fabric2", true, defaultedBySM = true, hideParentScreenIfHidden = true),
 
