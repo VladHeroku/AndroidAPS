@@ -45,6 +45,12 @@ import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.formatColor
 import app.aaps.core.objects.extensions.round
 import app.aaps.core.objects.extensions.valueToUnits
+import app.aaps.core.objects.meal.DynamicIcrShadowEstimator
+import app.aaps.core.objects.meal.DynamicIcrShadowInput
+import app.aaps.core.objects.meal.ProteinFatEntry
+import app.aaps.core.objects.meal.ProteinFatEntryStore
+import app.aaps.core.objects.meal.ProteinFatProfileStore
+import app.aaps.core.objects.meal.ProteinFatShadowModel
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.objects.wizard.BolusWizard
 import app.aaps.core.ui.extensions.runOnUiThread
@@ -128,6 +134,8 @@ class WizardDialog : DaggerDialogFragment() {
         super.onSaveInstanceState(savedInstanceState)
         savedInstanceState.putDouble("bg_input", binding.bgInput.value)
         savedInstanceState.putDouble("carbs_input", binding.carbsInput.value)
+        savedInstanceState.putDouble("protein_input", binding.proteinInput.value)
+        savedInstanceState.putDouble("fat_input", binding.fatInput.value)
         savedInstanceState.putDouble("correction_input", binding.correctionInput.value)
         savedInstanceState.putDouble("carb_time_input", binding.carbTimeInput.value)
     }
@@ -173,6 +181,14 @@ class WizardDialog : DaggerDialogFragment() {
         binding.carbsInput.setParams(
             savedInstanceState?.getDouble("carbs_input")
                 ?: 0.0, 0.0, maxCarbs.toDouble(), 1.0, DecimalFormat("0"), false, binding.okcancel.ok, textWatcher
+        )
+        binding.proteinInput.setParams(
+            savedInstanceState?.getDouble("protein_input") ?: 0.0,
+            0.0, 300.0, 1.0, DecimalFormat("0"), false, binding.okcancel.ok, textWatcher
+        )
+        binding.fatInput.setParams(
+            savedInstanceState?.getDouble("fat_input") ?: 0.0,
+            0.0, 300.0, 1.0, DecimalFormat("0"), false, binding.okcancel.ok, textWatcher
         )
 
         // If there is no BG using % lower that 100% leads to high BGs
@@ -221,6 +237,20 @@ class WizardDialog : DaggerDialogFragment() {
             } else {
                 okClicked = true
                 calculateInsulin()
+                val protein = binding.proteinInput.value
+                val fat = binding.fatInput.value
+                if (protein > 0.0 || fat > 0.0) {
+                    val entry = ProteinFatEntry(
+                        timestamp = dateUtil.now(),
+                        profileName = binding.profileList.text.toString().let {
+                            if (it == rh.gs(app.aaps.core.ui.R.string.active) || it.isBlank()) profileFunction.getProfileName() else it
+                        },
+                        proteinG = protein,
+                        fatG = fat
+                    )
+                    ProteinFatEntryStore.setPending(preferences, entry)
+                    ProteinFatEntryStore.appendHistory(preferences, entry)
+                }
                 context?.let { context ->
                     wizard?.confirmAndExecute(context)
                 }
@@ -294,6 +324,8 @@ class WizardDialog : DaggerDialogFragment() {
     private fun setA11yLabels() {
         binding.bgInputLabel.labelFor = binding.bgInput.editTextId
         binding.carbsInputLabel.labelFor = binding.carbsInput.editTextId
+        binding.proteinInputLabel.labelFor = binding.proteinInput.editTextId
+        binding.fatInputLabel.labelFor = binding.fatInput.editTextId
         binding.correctionInputLabel.labelFor = binding.correctionInput.editTextId
         binding.carbTimeInputLabel.labelFor = binding.carbTimeInput.editTextId
     }
@@ -440,6 +472,8 @@ class WizardDialog : DaggerDialogFragment() {
         val usePercentage = binding.correctionPercent.isChecked
         var bg = SafeParse.stringToDouble(binding.bgInput.text)
         val carbs = SafeParse.stringToInt(binding.carbsInput.text)
+        val protein = binding.proteinInput.value
+        val fat = binding.fatInput.value
         val correction = if (!usePercentage) {
             if (Round.roundTo(calculatedCorrection, bolusStep) == SafeParse.stringToDouble(binding.correctionInput.text))
                 calculatedCorrection
@@ -472,6 +506,36 @@ class WizardDialog : DaggerDialogFragment() {
         }
 
         val carbTime = SafeParse.stringToInt(binding.carbTimeInput.text)
+
+        val profileIcr = specificProfile.getIc()
+        val profileIsf = specificProfile.getProfileIsfMgdl()
+        val dynamicIsf = specificProfile.getIsfMgdl("DynamicICRPreview")
+        val bgMgdl = if (bg > 0.0) profileUtil.convertToMgdl(bg, profileFunction.getUnits()) else null
+        val dynamicIcr = DynamicIcrShadowEstimator.estimate(
+            DynamicIcrShadowInput(
+                profileIcrGPerU = profileIcr,
+                profileIsfMgdlPerU = profileIsf,
+                sensitivityIsfMgdlPerU = dynamicIsf,
+                absorptionIsfMgdlPerU = profileIsf,
+                currentBgMgdl = bgMgdl,
+                proteinG = protein,
+                fatG = fat
+            )
+        )
+        val macroConfig = ProteinFatProfileStore.load(preferences, profileName)
+        val macroPreview = ProteinFatShadowModel.estimate(
+            proteinG = protein,
+            fatG = fat,
+            config = macroConfig,
+            dynamicIcrGPerU = dynamicIcr.dosingIcrGPerU
+        )
+        binding.macroPreview.text = rh.gs(
+            R.string.wizard_macro_preview,
+            dynamicIcr.dosingIcrGPerU,
+            dynamicIcr.profileIcrGPerU,
+            macroPreview.delayedCarbEquivalentG,
+            macroPreview.advisoryInsulinU
+        )
 
         wizard = bolusWizardProvider.get().doCalc(
             specificProfile, profileName, tempTarget, carbsAfterConstraint, cob, bg, correction, preferences.get(IntKey.OverviewBolusPercentage),
