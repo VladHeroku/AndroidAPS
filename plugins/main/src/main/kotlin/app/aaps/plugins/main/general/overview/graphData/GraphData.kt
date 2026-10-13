@@ -110,7 +110,7 @@ class GraphData @Inject constructor(
         maxY = maxOf(maxY, overviewData.maxTreatmentsValue)
         addSeries(overviewData.treatmentsSeries as PointsWithLabelGraphSeries<DataPointWithLabelInterface>)
         (overviewData.treatmentsSeries as PointsWithLabelGraphSeries<DataPointWithLabelInterface>).setOnDataPointTapListener { _, dataPoint ->
-            if (dataPoint.label.isNotEmpty()) ToastUtils.infoToast(context, dataPoint.label)
+            if (dataPoint is DataPointWithLabelInterface && dataPoint.label.isNotEmpty()) ToastUtils.infoToast(context, dataPoint.label)
         }
     }
 
