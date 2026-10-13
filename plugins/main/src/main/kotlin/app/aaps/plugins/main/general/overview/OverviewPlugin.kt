@@ -224,7 +224,7 @@ class OverviewPlugin @Inject constructor(
     }
 
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        if (requiredKey != null && requiredKey != "overview_buttons_settings" && requiredKey != "default_temp_targets_settings" && requiredKey != "prime_fill_settings" && requiredKey != "range_settings" && requiredKey != "statuslights_overview_advanced" && requiredKey != "overview_advanced_settings") return
+        if (requiredKey != null && requiredKey != "overview_buttons_settings" && requiredKey != "default_temp_targets_settings" && requiredKey != "prime_fill_settings" && requiredKey != "range_settings" && requiredKey != "statuslights_overview_advanced" && requiredKey != "overview_advanced_settings" && requiredKey != "adaptive_meal_settings") return
         val category = PreferenceCategory(context)
         parent.addPreference(category)
         category.apply {
@@ -232,6 +232,21 @@ class OverviewPlugin @Inject constructor(
             title = rh.gs(R.string.overview)
             initialExpandedChildrenCount = 0
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OverviewKeepScreenOn, summary = R.string.keep_screen_on_summary, title = R.string.keep_screen_on_title))
+            addPreference(preferenceManager.createPreferenceScreen(context).apply {
+                key = "adaptive_meal_settings"
+                title = rh.gs(R.string.adaptive_meal_settings_title)
+                summary = rh.gs(R.string.adaptive_meal_settings_summary)
+                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.AdaptiveMealDynamicIcrEnabled, summary = R.string.adaptive_meal_dynamic_icr_summary, title = R.string.adaptive_meal_dynamic_icr))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AdaptiveMealIcrSensitivityCoupling, dialogMessage = R.string.adaptive_meal_icr_coupling_summary, title = R.string.adaptive_meal_icr_coupling))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AdaptiveMealIcrMaxAdjustment, dialogMessage = R.string.adaptive_meal_icr_max_adjustment_summary, title = R.string.adaptive_meal_icr_max_adjustment))
+                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.AdaptiveMealNeuralLearningEnabled, summary = R.string.adaptive_meal_neural_learning_summary, title = R.string.adaptive_meal_neural_learning))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AdaptiveMealNeuralLearningRate, title = R.string.adaptive_meal_neural_rate))
+                addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.AdaptiveMealMinObservations, title = R.string.adaptive_meal_min_observations))
+                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.AdaptiveMealDynamicMacroEnabled, summary = R.string.adaptive_meal_dynamic_macro_summary, title = R.string.adaptive_meal_dynamic_macro))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AdaptiveMealMacroLearningStep, title = R.string.adaptive_meal_macro_step))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AdaptiveMealMacroMaxAdjustment, title = R.string.adaptive_meal_macro_max_adjustment))
+                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.AdaptiveMealVirtualClosedLoop, summary = R.string.adaptive_meal_virtual_closed_loop_summary, title = R.string.adaptive_meal_virtual_closed_loop))
+            })
             addPreference(preferenceManager.createPreferenceScreen(context).apply {
                 key = "overview_buttons_settings"
                 title = rh.gs(R.string.overview_buttons_selection)
