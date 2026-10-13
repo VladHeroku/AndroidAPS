@@ -39,6 +39,7 @@ import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
@@ -51,6 +52,8 @@ import app.aaps.core.objects.meal.ProteinFatEntry
 import app.aaps.core.objects.meal.ProteinFatEntryStore
 import app.aaps.core.objects.meal.ProteinFatProfileStore
 import app.aaps.core.objects.meal.ProteinFatShadowModel
+import app.aaps.core.objects.meal.OnlineMealLearner
+import app.aaps.core.objects.meal.OnlineMealLearnerStore
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.objects.wizard.BolusWizard
 import app.aaps.core.ui.extensions.runOnUiThread
@@ -63,6 +66,7 @@ import dagger.android.support.DaggerDialogFragment
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.text.DecimalFormat
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.math.abs
@@ -98,6 +102,7 @@ class WizardDialog : DaggerDialogFragment() {
     private var okClicked: Boolean = false // one shot guards
     private var disposable: CompositeDisposable = CompositeDisposable()
     private var bolusStep = 0.0
+    private var adaptiveHistoryTemplate: ProteinFatEntry? = null
     private var _binding: DialogWizardBinding? = null
 
     // This property is only valid between onCreateView and onDestroyView.
@@ -240,13 +245,20 @@ class WizardDialog : DaggerDialogFragment() {
                 val protein = binding.proteinInput.value
                 val fat = binding.fatInput.value
                 if (protein > 0.0 || fat > 0.0) {
-                    val entry = ProteinFatEntry(
+                    val entry = adaptiveHistoryTemplate?.copy(
+                        timestamp = dateUtil.now(),
+                        proteinG = protein,
+                        fatG = fat,
+                        carbsG = binding.carbsInput.value
+                    ) ?: ProteinFatEntry(
                         timestamp = dateUtil.now(),
                         profileName = binding.profileList.text.toString().let {
                             if (it == rh.gs(app.aaps.core.ui.R.string.active) || it.isBlank()) profileFunction.getProfileName() else it
                         },
                         proteinG = protein,
-                        fatG = fat
+                        fatG = fat,
+                        carbsG = binding.carbsInput.value,
+                        source = "wizard"
                     )
                     ProteinFatEntryStore.setPending(preferences, entry)
                     ProteinFatEntryStore.appendHistory(preferences, entry)
@@ -511,12 +523,47 @@ class WizardDialog : DaggerDialogFragment() {
         val profileIsf = specificProfile.getProfileIsfMgdl()
         val dynamicIsf = specificProfile.getIsfMgdl("DynamicICRPreview")
         val bgMgdl = if (bg > 0.0) profileUtil.convertToMgdl(bg, profileFunction.getUnits()) else null
+        val currentIob = iobCobCalculator.calculateIobFromBolus().iob +
+            iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().basaliob
+        var neuralMultiplier = 1.0
+        var neuralConfidence = 0.0
+        if (preferences.get(BooleanKey.AdaptiveMealNeuralLearningEnabled)) {
+            val learner = OnlineMealLearnerStore.load(
+                preferences,
+                profileName,
+                preferences.get(DoubleKey.AdaptiveMealNeuralLearningRate),
+                preferences.get(DoubleKey.AdaptiveMealIcrMaxAdjustment),
+                preferences.get(IntKey.AdaptiveMealMinObservations)
+            )
+            val calendar = Calendar.getInstance()
+            val prediction = learner.predict(
+                OnlineMealLearner.Features(
+                    hourOfDay = calendar.get(Calendar.HOUR_OF_DAY) + calendar.get(Calendar.MINUTE) / 60.0,
+                    carbsG = carbsAfterConstraint,
+                    proteinG = protein,
+                    fatG = fat,
+                    preMealBgMgdl = bgMgdl ?: 110.0,
+                    preMealTrendMgdlPer5m = 0.0,
+                    iobU = currentIob,
+                    profileIcrGPerU = profileIcr,
+                    autoIsfRatio = ((dynamicIsf ?: profileIsf) / profileIsf).coerceIn(0.4, 2.5),
+                    recentTddRatio = 1.0
+                )
+            )
+            neuralMultiplier = prediction.icrMultiplier
+            neuralConfidence = prediction.confidence
+        }
+        val dynamicIcrEnabled = preferences.get(BooleanKey.AdaptiveMealDynamicIcrEnabled)
         val dynamicIcr = DynamicIcrShadowEstimator.estimate(
             DynamicIcrShadowInput(
                 profileIcrGPerU = profileIcr,
                 profileIsfMgdlPerU = profileIsf,
                 sensitivityIsfMgdlPerU = dynamicIsf,
                 absorptionIsfMgdlPerU = profileIsf,
+                learnedMealMultiplier = neuralMultiplier,
+                learningConfidence = if (dynamicIcrEnabled) neuralConfidence else 0.0,
+                sensitivityCoupling = if (dynamicIcrEnabled) preferences.get(DoubleKey.AdaptiveMealIcrSensitivityCoupling) else 0.0,
+                maxAdjustmentFraction = preferences.get(DoubleKey.AdaptiveMealIcrMaxAdjustment),
                 currentBgMgdl = bgMgdl,
                 proteinG = protein,
                 fatG = fat
@@ -535,6 +582,26 @@ class WizardDialog : DaggerDialogFragment() {
             dynamicIcr.profileIcrGPerU,
             macroPreview.delayedCarbEquivalentG,
             macroPreview.advisoryInsulinU
+        )
+
+        adaptiveHistoryTemplate = ProteinFatEntry(
+            timestamp = 0L,
+            profileName = profileName,
+            proteinG = protein,
+            fatG = fat,
+            carbsG = carbsAfterConstraint,
+            delayedCarbEquivalentG = macroPreview.delayedCarbEquivalentG,
+            advisoryInsulinU = macroPreview.advisoryInsulinU,
+            dynamicIcrGPerU = dynamicIcr.dosingIcrGPerU,
+            profileIcrGPerU = profileIcr,
+            profileIsfMgdlPerU = profileIsf,
+            preMealBgMgdl = bgMgdl ?: 0.0,
+            preMealTrendMgdlPer5m = 0.0,
+            iobU = currentIob,
+            autoIsfRatio = ((dynamicIsf ?: profileIsf) / profileIsf).coerceIn(0.4, 2.5),
+            neuralIcrMultiplier = neuralMultiplier,
+            neuralConfidence = neuralConfidence,
+            source = "wizard"
         )
 
         wizard = bolusWizardProvider.get().doCalc(
