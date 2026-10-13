@@ -161,6 +161,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     @Inject lateinit var decimalFormatter: DecimalFormatter
     @Inject lateinit var graphDataProvider: Provider<GraphData>
     @Inject lateinit var commandQueue: CommandQueue
+    @Inject lateinit var adaptiveMealLearningService: AdaptiveMealLearningService
 
     private val disposable = CompositeDisposable()
 
@@ -375,6 +376,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
 
     fun refreshAll() {
         if (!config.appInitialized) return
+        adaptiveMealLearningService.processReadyEpisodes()
         runOnUiThread {
             _binding ?: return@runOnUiThread
             updateTime()
